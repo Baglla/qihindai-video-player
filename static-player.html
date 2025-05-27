@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QiHinDai 视频播放器</title>
+    <meta name="description" content="现代化YouTube视频播放器，支持A-B循环、播放列表管理、速度调节等功能">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/react-player@2.13.0/dist/ReactPlayer.standalone.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .logo-bg {
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDIwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJsb2dvR3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmZmZmYiIHN0b3Atb3BhY2l0eT0iMC4xIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZmZmZmZmIiBzdG9wLW9wYWNpdHk9IjAuMDMiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48c3R5bGU+LmxvZ28tdGV4dCB7Zm9udC1mYW1pbHk6ICdIZWx2ZXRpY2EgTmV1ZScsIEFyaWFsLCBzYW5zLXNlcmlmO2ZvbnQtd2VpZ2h0OiA3MDA7Zm9udC1zaXplOiAzNnB4O2ZpbGw6IHVybCgjbG9nb0dyYWRpZW50KTtsZXR0ZXItc3BhY2luZzogMnB4O308L3N0eWxlPjx0ZXh0IHg9IjEwMCIgeT0iNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJsb2dvLXRleHQiPlFpSGluRGFpPC90ZXh0Pjwvc3ZnPg==');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 600px 300px;
+            opacity: 0.05;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+        .video-container {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .input {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            width: 100%;
+            font-size: 16px;
+        }
+        .input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .ab-loop-none { background: rgba(255, 255, 255, 0.1); }
+        .ab-loop-setA { background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%); }
+        .ab-loop-setB { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .ab-loop-looping { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .playlist-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .playlist-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .playlist-item.active {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-bg"></div>
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <h1 class="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            QiHinDai 视频播放器
+        </h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Video Player Section -->
+            <div class="lg:col-span-2">
+                <div class="video-container">
+                    <div class="mb-4">
+                        <input 
+                            id="videoInput" 
+                            type="text" 
+                            placeholder="粘贴YouTube视频链接..." 
+                            class="input"
+                        >
+                    </div>
+                    
+                    <div id="playerContainer" class="aspect-video bg-black rounded-lg mb-4 flex items-center justify-center">
+                        <div class="text-gray-400 text-lg">请输入YouTube视频链接</div>
+                    </div>
+                    
+                    <!-- Controls -->
+                    <div class="flex flex-wrap gap-3 items-center justify-center">
+                        <button id="playPauseBtn" class="btn btn-primary">播放/暂停</button>
+                        <button id="abLoopBtn" class="btn btn-secondary ab-loop-none">A-B循环</button>
+                        <button id="ccBtn" class="btn btn-secondary">CC字幕</button>
+                        <select id="speedSelect" class="btn btn-secondary">
+                            <option value="0.5">0.5x</option>
+                            <option value="0.6">0.6x</option>
+                            <option value="0.7">0.7x</option>
+                            <option value="0.8">0.8x</option>
+                            <option value="0.9">0.9x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="1.1">1.1x</option>
+                            <option value="1.25">1.25x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="1.75">1.75x</option>
+                            <option value="2">2x</option>
+                        </select>
+                        <button id="nextBtn" class="btn btn-secondary">下一个</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Playlist Section -->
+            <div class="lg:col-span-1">
+                <div class="video-container">
+                    <h3 class="text-xl font-semibold mb-4">播放列表</h3>
+                    <div id="playlist" class="space-y-2 max-h-96 overflow-y-auto">
+                        <div class="text-gray-400 text-center py-8">暂无视频</div>
+                    </div>
+                    <button id="clearPlaylist" class="btn btn-secondary w-full mt-4">清空列表</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 应用状态
+        let currentPlayer = null;
+        let currentVideoUrl = '';
+        let abLoopState = 'none';
+        let aPoint = null;
+        let bPoint = null;
+        let playlist = JSON.parse(localStorage.getItem('qihindai-playlist') || '[]');
+        let currentVideoIndex = 0;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            renderPlaylist();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('videoInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    loadVideo(this.value);
+                }
+            });
+
+            document.getElementById('playPauseBtn').addEventListener('click', togglePlayPause);
+            document.getElementById('abLoopBtn').addEventListener('click', toggleABLoop);
+            document.getElementById('ccBtn').addEventListener('click', toggleCaptions);
+            document.getElementById('speedSelect').addEventListener('change', changeSpeed);
+            document.getElementById('nextBtn').addEventListener('click', playNext);
+            document.getElementById('clearPlaylist').addEventListener('click', clearPlaylist);
+        }
+
+        function extractVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
+        }
+
+        async function getVideoTitle(videoId) {
+            try {
+                const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+                const data = await response.json();
+                return data.title;
+            } catch (error) {
+                return `YouTube视频 ${videoId.substring(0, 8)}...`;
+            }
+        }
+
+        async function loadVideo(url) {
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                alert('请输入有效的YouTube链接');
+                return;
+            }
+
+            currentVideoUrl = url;
+            
+            if (!playlist.find(v => v.url === url)) {
+                const title = await getVideoTitle(videoId);
+                playlist.push({
+                    url: url,
+                    title: title,
+                    id: videoId
+                });
+                localStorage.setItem('qihindai-playlist', JSON.stringify(playlist));
+                renderPlaylist();
+            }
+
+            const container = document.getElementById('playerContainer');
+            container.innerHTML = '';
+            
+            currentPlayer = ReactPlayer.default({
+                url: url,
+                width: '100%',
+                height: '100%',
+                controls: true,
+                playing: false,
+                onReady: () => console.log('Player ready'),
+                onProgress: handleProgress,
+                onEnded: handleVideoEnd,
+                config: {
+                    youtube: {
+                        playerVars: {
+                            cc_load_policy: 1,
+                            modestbranding: 1,
+                            rel: 0,
+                            fs: 1
+                        }
+                    }
+                }
+            }, container);
+
+            resetABLoop();
+        }
+
+        function togglePlayPause() {
+            if (currentPlayer && currentPlayer.getInternalPlayer) {
+                const internalPlayer = currentPlayer.getInternalPlayer();
+                if (internalPlayer.getPlayerState() === 1) {
+                    internalPlayer.pauseVideo();
+                } else {
+                    internalPlayer.playVideo();
+                }
+            }
+        }
+
+        function toggleABLoop() {
+            if (!currentPlayer) return;
+
+            const currentTime = currentPlayer.getCurrentTime();
+            
+            switch (abLoopState) {
+                case 'none':
+                    aPoint = currentTime;
+                    abLoopState = 'setA';
+                    break;
+                case 'setA':
+                    bPoint = currentTime;
+                    if (bPoint > aPoint) {
+                        abLoopState = 'setB';
+                        setTimeout(() => {
+                            abLoopState = 'looping';
+                            updateABButton();
+                        }, 500);
+                    } else {
+                        alert('B点必须在A点之后');
+                        return;
+                    }
+                    break;
+                case 'setB':
+                case 'looping':
+                    resetABLoop();
+                    break;
+            }
+            updateABButton();
+        }
+
+        function resetABLoop() {
+            abLoopState = 'none';
+            aPoint = null;
+            bPoint = null;
+            updateABButton();
+        }
+
+        function updateABButton() {
+            const btn = document.getElementById('abLoopBtn');
+            btn.className = `btn btn-secondary ab-loop-${abLoopState}`;
+            
+            const texts = {
+                'none': 'A-B循环',
+                'setA': `A点: ${Math.floor(aPoint)}s`,
+                'setB': `A-B已设置`,
+                'looping': `循环中 ${Math.floor(aPoint)}-${Math.floor(bPoint)}s`
+            };
+            btn.textContent = texts[abLoopState];
+        }
+
+        function handleProgress(state) {
+            if (abLoopState === 'looping' && aPoint !== null && bPoint !== null) {
+                if (state.playedSeconds >= bPoint) {
+                    currentPlayer.seekTo(aPoint);
+                }
+            }
+        }
+
+        function handleVideoEnd() {
+            if (abLoopState === 'looping' && aPoint !== null) {
+                currentPlayer.seekTo(aPoint);
+                currentPlayer.getInternalPlayer().playVideo();
+            }
+        }
+
+        function toggleCaptions() {
+            if (currentPlayer && currentPlayer.getInternalPlayer) {
+                alert('请使用播放器右下角的CC按钮控制字幕');
+            }
+        }
+
+        function changeSpeed() {
+            const speed = parseFloat(document.getElementById('speedSelect').value);
+            if (currentPlayer && currentPlayer.getInternalPlayer) {
+                currentPlayer.getInternalPlayer().setPlaybackRate(speed);
+            }
+        }
+
+        function playNext() {
+            if (playlist.length === 0) return;
+            
+            currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
+            const nextVideo = playlist[currentVideoIndex];
+            
+            document.getElementById('videoInput').value = nextVideo.url;
+            loadVideo(nextVideo.url);
+        }
+
+        function renderPlaylist() {
+            const container = document.getElementById('playlist');
+            
+            if (playlist.length === 0) {
+                container.innerHTML = '<div class="text-gray-400 text-center py-8">暂无视频</div>';
+                return;
+            }
+
+            container.innerHTML = playlist.map((video, index) => `
+                <div class="playlist-item ${video.url === currentVideoUrl ? 'active' : ''}" 
+                     onclick="playVideo('${video.url}', ${index})">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-sm truncate">${video.title}</div>
+                            <div class="text-xs text-gray-400 mt-1">${video.id}</div>
+                        </div>
+                        <button onclick="event.stopPropagation(); removeVideo(${index})" 
+                                class="ml-2 text-red-400 hover:text-red-300 text-sm">×</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function playVideo(url, index) {
+            currentVideoIndex = index;
+            document.getElementById('videoInput').value = url;
+            loadVideo(url);
+        }
+
+        function removeVideo(index) {
+            playlist.splice(index, 1);
+            localStorage.setItem('qihindai-playlist', JSON.stringify(playlist));
+            renderPlaylist();
+            
+            if (currentVideoIndex >= playlist.length) {
+                currentVideoIndex = 0;
+            }
+        }
+
+        function clearPlaylist() {
+            if (confirm('确定要清空播放列表吗？')) {
+                playlist = [];
+                localStorage.setItem('qihindai-playlist', JSON.stringify(playlist));
+                renderPlaylist();
+                currentVideoIndex = 0;
+            }
+        }
+    </script>
+</body>
+</html>
